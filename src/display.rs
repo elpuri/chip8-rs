@@ -12,7 +12,6 @@ use wgpu::{
 use std::num::NonZeroU32;
 use crate::chip8::Chip8;
 use winit::{dpi::LogicalSize, platform::macos::WindowBuilderExtMacOS};
-use png;
 
 pub struct Chip8Display {
     pipeline: wgpu::RenderPipeline,
@@ -28,16 +27,10 @@ impl Chip8Display {
 
     pub fn new(event_loop: &winit::event_loop::EventLoop<()>) -> Chip8Display {
 
-        let decoder = png::Decoder::new(include_bytes!("../assets/frame.png").as_ref());
-        let mut info = decoder.read_info().unwrap();
-        let buffer_size = info.output_buffer_size();
-        let mut decoded = vec![0u8; buffer_size];
-        let info = info.next_frame(&mut decoded).unwrap();
-
-        let png::OutputInfo {width, height, ..} = info;
+        let overlay = image::load_from_memory(include_bytes!("../assets/frame.png")).unwrap();
 
         let window = winit::window::WindowBuilder::new()
-            .with_inner_size(LogicalSize { width, height })
+            .with_inner_size(LogicalSize { width: overlay.width(), height: overlay.height() })
             .with_title("chip8-rs")
             .with_transparent(true)
             .with_titlebar_transparent(true)
@@ -70,7 +63,7 @@ impl Chip8Display {
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8Unorm,
             usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST
-        }, &decoded);
+        }, &overlay.as_bytes());
 
         let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: None,
